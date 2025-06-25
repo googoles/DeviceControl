@@ -1,24 +1,96 @@
 {
-  "name": "device-control-electron-app-new",
+  "name": "device-control-electron-app",
   "version": "1.0.0",
   "description": "Device Control Application with Serial Port Communication",
   "main": "main.js",
+  "author": "Your Name",
+  "license": "MIT",
   "scripts": {
     "start": "electron .",
     "dev": "concurrently --kill-others \"cd device-control-app && npm run dev\" \"npm run start\" --names \"Vite,Electron\" --prefix-colors \"yellow,cyan\" -d 5000",
     "build": "npm run build-renderer && electron-builder",
     "build-renderer": "cd device-control-app && npm run build",
+    "build-win": "npm run build-renderer && electron-builder --win",
+    "build-mac": "npm run build-renderer && electron-builder --mac", 
+    "build-linux": "npm run build-renderer && electron-builder --linux",
+    "dist": "npm run build",
+    "pack": "npm run build-renderer && electron-builder --dir",
     "rebuild": "electron-rebuild",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "postinstall": "npm run rebuild"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "electron": "^28.3.3",
+    "electron": "^28.0.0",
     "electron-builder": "^24.13.3",
     "electron-is-dev": "^2.0.0",
     "electron-rebuild": "^3.2.9"
   },
   "dependencies": {
     "serialport": "^12.0.0"
+  },
+  "build": {
+    "appId": "com.yourcompany.devicecontrol",
+    "productName": "Device Control",
+    "directories": {
+      "output": "dist",
+      "buildResources": "resources"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json",
+      {
+        "from": "./device-control-app/dist",
+        "to": "./device-control-app/dist",
+        "filter": ["**/*"]
+      }
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/serialport",
+        "to": "serialport",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable", 
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "./resources/icon.ico"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "icon": "./resources/icon.icns"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "./resources/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-Portable.${ext}"
+    }
   }
 }

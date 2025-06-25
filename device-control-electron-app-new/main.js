@@ -181,11 +181,18 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   console.log('App closing...');
   
-  if (port && port.isOpen) {
-    port.close((err) => {
-      if (err) console.error("Error closing port on app quit:", err);
-      else console.log("Serial port closed on app quit.");
-    });
+  // port 변수가 정의되어 있고 열려있는지 확인
+  if (typeof port !== 'undefined' && port && port.isOpen) {
+    try {
+      port.close((err) => {
+        if (err) console.error("Error closing port on app quit:", err);
+        else console.log("Serial port closed on app quit.");
+      });
+    } catch (error) {
+      console.error("Error during port cleanup:", error);
+    }
+  } else {
+    console.log("No port to close or port already closed.");
   }
   
   if (process.platform !== 'darwin') {

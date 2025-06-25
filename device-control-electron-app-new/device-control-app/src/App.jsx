@@ -20,6 +20,7 @@ function App() {
 
   const ENCODING_OPTIONS = ['ascii', 'utf8', 'utf16le', 'ucs2', 'base64', 'binary', 'hex'];
   const [encoding, setEncoding] = useState('ascii');
+  const [receivedDataEncoding, setReceivedDataEncoding] = useState('utf8'); // 수신 데이터용 인코딩
 
   const [portStatus, setPortStatus] = useState('Closed');
   const [receivedData, setReceivedData] = useState('');
@@ -113,6 +114,29 @@ function App() {
     
     const result = await window.electron.writeToSerialPort(dataToSend, encoding);
     console.log(result.message);
+  };
+
+  // 수신된 데이터를 선택된 인코딩으로 변환하는 함수
+  const convertReceivedData = (data) => {
+    if (!data) return '';
+    
+    try {
+      // 현재 데이터가 UTF-8로 받아지므로, 다른 인코딩으로 해석하려면 변환 필요
+      // 실제 구현에서는 raw 바이트 데이터가 필요하지만, 여기서는 기본적인 변환만 수행
+      switch (receivedDataEncoding) {
+        case 'hex':
+          return data.split('').map(char => char.charCodeAt(0).toString(16).padStart(2, '0')).join(' ');
+        case 'binary':
+          return data.split('').map(char => char.charCodeAt(0).toString(2).padStart(8, '0')).join(' ');
+        case 'base64':
+          return btoa(data);
+        default:
+          return data; // utf8, ascii, utf16le, ucs2는 기본 표시
+      }
+    } catch (error) {
+      console.error('Error converting received data:', error);
+      return data; // 변환 실패시 원본 데이터 반환
+    }
   };
 
   return (
@@ -212,9 +236,9 @@ function App() {
           <h2>Send Data</h2>
           <div className="card-content">
             <div className="input-group">
-              <label htmlFor="encoding-select">Encoding:</label>
+              <label htmlFor="send-encoding-select">Send Encoding:</label>
               <select
-                id="encoding-select"
+                id="send-encoding-select"
                 value={encoding}
                 onChange={(e) => setEncoding(e.target.value)}
               >
@@ -239,10 +263,24 @@ function App() {
         <div className="card">
           <h2>Received Data</h2>
           <div className="card-content">
+            <div className="input-group">
+              <label htmlFor="received-encoding-select">Display Encoding:</label>
+              <select
+                id="received-encoding-select"
+                value={receivedDataEncoding}
+                onChange={(e) => setReceivedDataEncoding(e.target.value)}
+              >
+                {ENCODING_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+            </div>
             <textarea
               ref={receivedDataRef}
               readOnly
-              value={receivedData}
+              value={convertReceivedData(receivedData)}
               placeholder="Data received from FTDI chip..."
               rows="10"
             ></textarea>
