@@ -2,13 +2,14 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const isDev = require('electron-is-dev');
 const { SerialPort } = require('serialport');
+const fs = require('fs');
 
 function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
-    height: 1200,
+    height: 900,
     minWidth: 1200,
-    minHeight: 1200,
+    minHeight: 900,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -16,15 +17,43 @@ function createWindow() {
     },
   });
 
-  win.loadURL(
-    isDev
-      ? 'http://localhost:5173'
-      : `file://${path.join(__dirname, './device-control-app/dist/index.html')}`
-  );
-
   if (isDev) {
+    // 개발 모드: Vite 개발 서버에 연결
+    console.log('Development mode: Loading from Vite dev server');
+    win.loadURL('http://localhost:5173');
     // win.webContents.openDevTools();
+  } else {
+    // 프로덕션 모드: 빌드된 파일 로드
+    const indexPath = path.join(__dirname, 'device-control-app', 'dist', 'index.html');
+    console.log('Production mode: Loading from', indexPath);
+    
+    // 파일 존재 여부 확인
+    if (fs.existsSync(indexPath)) {
+      win.loadFile(indexPath);
+    } else {
+      console.error('Build file not found:', indexPath);
+      console.log('Please run "npm run build-renderer" first');
+      // 에러 페이지 표시
+      win.loadURL(`data:text/html,
+        <html>
+          <body style="font-family: Arial; padding: 20px; background: #242424; color: white;">
+            <h1>Build Error</h1>
+            <p>The React app hasn't been built yet.</p>
+            <p>Please run: <code style="background: #333; padding: 4px;">npm run build-renderer</code></p>
+            <p>Then restart the application.</p>
+          </body>
+        </html>
+      `);
+    }
   }
+
+  // 로드 실패 시 에러 처리
+  win.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.error('Failed to load:', errorCode, errorDescription, validatedURL);
+    if (isDev && errorCode === -102) {
+      console.log('Development server not running. Please run "npm run dev" instead of "npm start"');
+    }
+  });
 }
 
 app.whenReady().then(() => {
@@ -181,18 +210,11 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   console.log('App closing...');
   
-  // port 변수가 정의되어 있고 열려있는지 확인
-  if (typeof port !== 'undefined' && port && port.isOpen) {
-    try {
-      port.close((err) => {
-        if (err) console.error("Error closing port on app quit:", err);
-        else console.log("Serial port closed on app quit.");
-      });
-    } catch (error) {
-      console.error("Error during port cleanup:", error);
-    }
-  } else {
-    console.log("No port to close or port already closed.");
+  if (port && port.isOpen) {
+    port.close((err) => {
+      if (err) console.error("Error closing port on app quit:", err);
+      else console.log("Serial port closed on app quit.");
+    });
   }
   
   if (process.platform !== 'darwin') {
