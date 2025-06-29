@@ -6,10 +6,10 @@ const fs = require('fs');
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1200,
-    height: 900,
-    minWidth: 1200,
-    minHeight: 900,
+    width: 1600,        // 1200 → 1600으로 증가
+    height: 1200,       // 900 → 1200으로 증가
+    minWidth: 1400,     // 최소 너비도 조정
+    minHeight: 1000,    // 최소 높이도 조정
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,

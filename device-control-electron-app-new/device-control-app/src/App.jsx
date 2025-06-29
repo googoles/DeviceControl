@@ -48,6 +48,18 @@ function App() {
   const serialMonitorRef = useRef(null);
   const receivedDataRef = useRef(null);
 
+  // Serial Monitor enhanced features
+  const [showTX, setShowTX] = useState(true);
+  const [showRX, setShowRX] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [useRegex, setUseRegex] = useState(false);
+  const [displayFormat, setDisplayFormat] = useState('ascii'); // ascii, hex, binary
+  const [timestampFormat, setTimestampFormat] = useState('absolute'); // absolute, relative, milliseconds
+  const [autoScroll, setAutoScroll] = useState(true);
+  const [maxLogLines, setMaxLogLines] = useState(1000);
+  const [selectedEntries, setSelectedEntries] = useState(new Set());
+  const [startTime] = useState(Date.now());
+
   const fetchPorts = async () => {
     if (window.electron) {
       console.log('Using window.electron API');
@@ -64,14 +76,161 @@ function App() {
 
   // Add to serial monitor log
   const addToSerialMonitor = (data, type) => {
-    const timestamp = new Date().toLocaleTimeString();
+    const now = Date.now();
     const logEntry = {
-      timestamp,
+      timestamp: now,
       data,
       type, // 'sent' or 'received'
-      id: Date.now() + Math.random()
+      id: now + Math.random()
     };
-    setSerialMonitorLog(prev => [...prev, logEntry]);
+    
+    setSerialMonitorLog(prev => {
+      const newLog = [...prev, logEntry];
+      // Limit log lines
+      if (newLog.length > maxLogLines) {
+        return newLog.slice(-maxLogLines);
+      }
+      return newLog;
+    });
+  };
+
+  // Format timestamp based on selected format
+  const formatTimestamp = (timestamp) => {
+    const date = new Date(timestamp);
+    switch (timestampFormat) {
+      case 'relative':
+        const diff = timestamp - startTime;
+        return `+${(diff / 1000).toFixed(3)}s`;
+      case 'milliseconds':
+        return `${timestamp}`;
+      default: // absolute
+        return date.toLocaleTimeString();
+    }
+  };
+
+  // Format data based on display format
+  const formatData = (data) => {
+    switch (displayFormat) {
+      case 'hex':
+        return data.split('').map(char => char.charCodeAt(0).toString(16).padStart(2, '0')).join(' ');
+      case 'binary':
+        return data.split('').map(char => char.charCodeAt(0).toString(2).padStart(8, '0')).join(' ');
+      default: // ascii
+        return data.replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\t/g, '\\t');
+    }
+  };
+
+  // Filter and search log entries
+  const getFilteredEntries = () => {
+    let filtered = serialMonitorLog;
+
+    // Filter by TX/RX
+    if (!showTX || !showRX) {
+      filtered = filtered.filter(entry => 
+        (showTX && entry.type === 'sent') || (showRX && entry.type === 'received')
+      );
+    }
+
+    // Search filter
+    if (searchTerm) {
+      if (useRegex) {
+        try {
+          const regex = new RegExp(searchTerm, 'gi');
+          filtered = filtered.filter(entry => regex.test(entry.data));
+        } catch (e) {
+          // Invalid regex, fall back to simple search
+          filtered = filtered.filter(entry => 
+            entry.data.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+        }
+      } else {
+        filtered = filtered.filter(entry => 
+          entry.data.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+    }
+
+    return filtered;
+  };
+
+  // Highlight search terms
+  const highlightText = (text, term) => {
+    if (!term) return text;
+    
+    if (useRegex) {
+      try {
+        const regex = new RegExp(`(${term})`, 'gi');
+        return text.replace(regex, '<mark>$1</mark>');
+      } catch (e) {
+        // Invalid regex, fall back to simple highlighting
+        const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`(${escapedTerm})`, 'gi');
+        return text.replace(regex, '<mark>$1</mark>');
+      }
+    } else {
+      const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(${escapedTerm})`, 'gi');
+      return text.replace(regex, '<mark>$1</mark>');
+    }
+  };
+
+  // Toggle entry selection
+  const toggleEntrySelection = (entryId) => {
+    setSelectedEntries(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(entryId)) {
+        newSet.delete(entryId);
+      } else {
+        newSet.add(entryId);
+      }
+      return newSet;
+    });
+  };
+
+  // Copy selected entries to clipboard
+  const copySelectedEntries = () => {
+    const filteredEntries = getFilteredEntries();
+    const selectedData = filteredEntries
+      .filter(entry => selectedEntries.has(entry.id))
+      .map(entry => `[${formatTimestamp(entry.timestamp)}] ${entry.type === 'sent' ? 'TX:' : 'RX:'} ${entry.data}`)
+      .join('\n');
+    
+    if (selectedData) {
+      navigator.clipboard.writeText(selectedData);
+      alert(`${selectedEntries.size} entries copied to clipboard!`);
+    }
+  };
+
+  // Save log to file
+  const saveLogToFile = (format = 'txt') => {
+    const filteredEntries = getFilteredEntries();
+    let content = '';
+    
+    if (format === 'csv') {
+      content = 'Timestamp,Direction,Data\n';
+      content += filteredEntries.map(entry => 
+        `"${formatTimestamp(entry.timestamp)}","${entry.type === 'sent' ? 'TX' : 'RX'}","${entry.data.replace(/"/g, '""')}"`
+      ).join('\n');
+    } else {
+      content = filteredEntries.map(entry => 
+        `[${formatTimestamp(entry.timestamp)}] ${entry.type === 'sent' ? 'TX:' : 'RX:'} ${entry.data}`
+      ).join('\n');
+    }
+
+    const blob = new Blob([content], { type: format === 'csv' ? 'text/csv' : 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `serial_log_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.${format}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const clearSerialMonitor = () => {
+    setSerialMonitorLog([]);
+    setSelectedEntries(new Set());
   };
 
   useEffect(() => {
@@ -101,10 +260,10 @@ function App() {
   }, [receivedData]);
 
   useEffect(() => {
-    if (serialMonitorRef.current) {
+    if (autoScroll && serialMonitorRef.current) {
       serialMonitorRef.current.scrollTop = serialMonitorRef.current.scrollHeight;
     }
-  }, [serialMonitorLog]);
+  }, [serialMonitorLog, autoScroll]);
 
   // Update DAC max values when resolution changes
   useEffect(() => {
@@ -186,6 +345,20 @@ function App() {
     })));
   };
 
+  const enableAllChannels = () => {
+    setDacChannels(prev => prev.map(channel => ({
+      ...channel,
+      enabled: true
+    })));
+  };
+
+  const disableAllChannels = () => {
+    setDacChannels(prev => prev.map(channel => ({
+      ...channel,
+      enabled: false
+    })));
+  };
+
   const sendDacCommand = async (channelId, value) => {
     if (!window.electron) {
       alert('Electron API is not available');
@@ -227,10 +400,6 @@ function App() {
       console.error('Error converting received data:', error);
       return data;
     }
-  };
-
-  const clearSerialMonitor = () => {
-    setSerialMonitorLog([]);
   };
 
   return (
@@ -437,6 +606,10 @@ function App() {
                 <div className="button-group">
                   <button onClick={sendAllDacChannels}>Send All Channels</button>
                 </div>
+                <div className="button-group">
+                  <button onClick={enableAllChannels}>Enable All</button>
+                  <button onClick={disableAllChannels}>Disable All</button>
+                </div>
               </div>
             </div>
 
@@ -491,20 +664,130 @@ function App() {
         )}
       </div>
 
-      {/* Fixed Serial Monitor at bottom */}
+      {/* Enhanced Serial Monitor at bottom */}
       <div className="serial-monitor">
         <div className="serial-monitor-header">
           <h3>Serial Monitor</h3>
-          <button onClick={clearSerialMonitor}>Clear</button>
+          <div className="monitor-controls">
+            {/* Filter Controls */}
+            <div className="monitor-control-group">
+              <label className="monitor-checkbox">
+                <input
+                  type="checkbox"
+                  checked={showTX}
+                  onChange={(e) => setShowTX(e.target.checked)}
+                />
+                TX
+              </label>
+              <label className="monitor-checkbox">
+                <input
+                  type="checkbox"
+                  checked={showRX}
+                  onChange={(e) => setShowRX(e.target.checked)}
+                />
+                RX
+              </label>
+            </div>
+
+            {/* Search Controls */}
+            <div className="monitor-control-group">
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="monitor-search"
+              />
+              <label className="monitor-checkbox">
+                <input
+                  type="checkbox"
+                  checked={useRegex}
+                  onChange={(e) => setUseRegex(e.target.checked)}
+                />
+                Regex
+              </label>
+            </div>
+
+            {/* Display Options */}
+            <div className="monitor-control-group">
+              <select
+                value={displayFormat}
+                onChange={(e) => setDisplayFormat(e.target.value)}
+                className="monitor-select"
+              >
+                <option value="ascii">ASCII</option>
+                <option value="hex">HEX</option>
+                <option value="binary">Binary</option>
+              </select>
+              <select
+                value={timestampFormat}
+                onChange={(e) => setTimestampFormat(e.target.value)}
+                className="monitor-select"
+              >
+                <option value="absolute">Time</option>
+                <option value="relative">Relative</option>
+                <option value="milliseconds">MS</option>
+              </select>
+            </div>
+
+            {/* Action Controls */}
+            <div className="monitor-control-group">
+              <label className="monitor-checkbox">
+                <input
+                  type="checkbox"
+                  checked={autoScroll}
+                  onChange={(e) => setAutoScroll(e.target.checked)}
+                />
+                Auto Scroll
+              </label>
+              <input
+                type="number"
+                value={maxLogLines}
+                onChange={(e) => setMaxLogLines(parseInt(e.target.value))}
+                min="100"
+                max="10000"
+                step="100"
+                className="monitor-number-input"
+                title="Max log lines"
+              />
+            </div>
+
+            {/* File Operations */}
+            <div className="monitor-control-group">
+              <button onClick={() => saveLogToFile('txt')} className="monitor-btn">Save TXT</button>
+              <button onClick={() => saveLogToFile('csv')} className="monitor-btn">Save CSV</button>
+              <button 
+                onClick={copySelectedEntries} 
+                className="monitor-btn"
+                disabled={selectedEntries.size === 0}
+              >
+                Copy ({selectedEntries.size})
+              </button>
+              <button onClick={clearSerialMonitor} className="monitor-btn">Clear</button>
+            </div>
+          </div>
         </div>
+        
         <div className="serial-monitor-content" ref={serialMonitorRef}>
-          {serialMonitorLog.map((entry) => (
-            <div key={entry.id} className={`monitor-entry ${entry.type}`}>
-              <span className="timestamp">[{entry.timestamp}]</span>
+          {getFilteredEntries().map((entry) => (
+            <div 
+              key={entry.id} 
+              className={`monitor-entry ${entry.type} ${selectedEntries.has(entry.id) ? 'selected' : ''}`}
+              onClick={() => toggleEntrySelection(entry.id)}
+            >
+              <span className="timestamp">[{formatTimestamp(entry.timestamp)}]</span>
               <span className="direction">{entry.type === 'sent' ? 'TX:' : 'RX:'}</span>
-              <span className="data">{entry.data}</span>
+              <span 
+                className="data"
+                dangerouslySetInnerHTML={{
+                  __html: highlightText(formatData(entry.data), searchTerm)
+                }}
+              />
             </div>
           ))}
+          {getFilteredEntries().length === 0 && serialMonitorLog.length > 0 && (
+            <div className="monitor-placeholder">No entries match current filters...</div>
+          )}
           {serialMonitorLog.length === 0 && (
             <div className="monitor-placeholder">No data transmitted yet...</div>
           )}
