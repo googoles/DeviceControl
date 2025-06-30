@@ -29,7 +29,7 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
     },
-    // icon: path.join(__dirname, 'public', 'FPGA_Icon.ico'), // 아이콘 설정 임시 제거
+    icon: path.join(__dirname, 'assets', 'FPGA_Icon.ico'), // 앱 아이콘 설정
     show: false, // 로딩 완료 후 표시
     titleBarStyle: 'default',
     autoHideMenuBar: true, // 메뉴바 자동 숨김 (Alt키로 표시 가능)
