@@ -56,4 +56,55 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.on('serial-data-received', subscription);
     return () => ipcRenderer.removeListener('serial-data-received', subscription);
   },
+
+  // 자동 업데이트 API
+  checkForUpdates: () => {
+    console.log('preload: checkForUpdates called');
+    return ipcRenderer.invoke('check-for-updates');
+  },
+
+  restartApp: () => {
+    console.log('preload: restartApp called');
+    return ipcRenderer.invoke('restart-app');
+  },
+
+  getAppVersion: () => {
+    console.log('preload: getAppVersion called');
+    return ipcRenderer.invoke('get-app-version');
+  },
+
+  // 자동 업데이트 이벤트 리스너
+  onUpdateAvailable: (func) => {
+    console.log('preload: onUpdateAvailable listener setup');
+    const subscription = (event, info) => func(info);
+    ipcRenderer.on('update-available', subscription);
+    return () => ipcRenderer.removeListener('update-available', subscription);
+  },
+
+  onDownloadProgress: (func) => {
+    console.log('preload: onDownloadProgress listener setup');
+    const subscription = (event, progress) => func(progress);
+    ipcRenderer.on('download-progress', subscription);
+    return () => ipcRenderer.removeListener('download-progress', subscription);
+  },
+
+  onUpdateDownloaded: (func) => {
+    console.log('preload: onUpdateDownloaded listener setup');
+    const subscription = (event, info) => func(info);
+    ipcRenderer.on('update-downloaded', subscription);
+    return () => ipcRenderer.removeListener('update-downloaded', subscription);
+  },
+
+  onUpdateError: (func) => {
+    console.log('preload: onUpdateError listener setup');
+    const subscription = (event, error) => func(error);
+    ipcRenderer.on('update-error', subscription);
+    return () => ipcRenderer.removeListener('update-error', subscription);
+  },
+
+  // 앱 정보
+  showAboutDialog: () => {
+    console.log('preload: showAboutDialog called');
+    return ipcRenderer.invoke('show-about-dialog');
+  }
 });
