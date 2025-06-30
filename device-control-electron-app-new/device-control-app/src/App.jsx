@@ -24,10 +24,8 @@ function App() {
 
   const ENCODING_OPTIONS = ['ascii', 'utf8', 'utf16le', 'ucs2', 'base64', 'binary', 'hex'];
   const [encoding, setEncoding] = useState('ascii');
-  const [receivedDataEncoding, setReceivedDataEncoding] = useState('utf8');
 
   const [portStatus, setPortStatus] = useState('Closed');
-  const [receivedData, setReceivedData] = useState('');
   const [dataToSend, setDataToSend] = useState('');
 
   // DAC Control states
@@ -46,7 +44,6 @@ function App() {
   // Serial Monitor states
   const [serialMonitorLog, setSerialMonitorLog] = useState([]);
   const serialMonitorRef = useRef(null);
-  const receivedDataRef = useRef(null);
 
   // Serial Monitor enhanced features
   const [showTX, setShowTX] = useState(true);
@@ -242,7 +239,6 @@ function App() {
         console.log("Port Status Update:", status);
       });
       const cleanupData = window.electron.onSerialDataReceived((data) => {
-        setReceivedData(prev => prev + data + '\n');
         addToSerialMonitor(data, 'received');
         console.log("Data Received:", data);
       });
@@ -252,12 +248,6 @@ function App() {
       };
     }
   }, []);
-
-  useEffect(() => {
-    if (receivedDataRef.current) {
-      receivedDataRef.current.scrollTop = receivedDataRef.current.scrollHeight;
-    }
-  }, [receivedData]);
 
   useEffect(() => {
     if (autoScroll && serialMonitorRef.current) {
@@ -382,29 +372,9 @@ function App() {
     }
   };
 
-  const convertReceivedData = (data) => {
-    if (!data) return '';
-    
-    try {
-      switch (receivedDataEncoding) {
-        case 'hex':
-          return data.split('').map(char => char.charCodeAt(0).toString(16).padStart(2, '0')).join(' ');
-        case 'binary':
-          return data.split('').map(char => char.charCodeAt(0).toString(2).padStart(8, '0')).join(' ');
-        case 'base64':
-          return btoa(data);
-        default:
-          return data;
-      }
-    } catch (error) {
-      console.error('Error converting received data:', error);
-      return data;
-    }
-  };
-
   return (
     <div className="app-container">
-      <h1>FPGA Device Control App</h1>
+      
 
       {/* Tab Navigation */}
       <div className="tab-navigation">
@@ -425,148 +395,123 @@ function App() {
       {/* Tab Content */}
       <div className="tab-content">
         {activeTab === 'serial' && (
-          <div className="card-grid">
-            {/* Serial Port Configuration Card */}
-            <div className="card">
-              <h2>Serial Port Configuration</h2>
-              <div className="card-content">
-                <button onClick={fetchPorts}>Refresh Ports</button>
-                <div className="input-group">
-                  <label htmlFor="port-select">Port:</label>
-                  <select
-                    id="port-select"
-                    value={selectedPort}
-                    onChange={(e) => setSelectedPort(e.target.value)}
-                  >
-                    {ports.map(port => (
-                      <option key={port.path} value={port.path}>
-                        {port.path} {port.manufacturer ? `(${port.manufacturer})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="input-group">
-                  <label htmlFor="baud-rate-select">Baud Rate:</label>
-                  <select
-                    id="baud-rate-select"
-                    value={baudRate}
-                    onChange={(e) => setBaudRate(parseInt(e.target.value))}
-                  >
-                    {BAUD_RATES.map((rate) => (
-                      <option key={rate} value={rate}>
-                        {rate}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+          <div className="serial-cards-container">
+            <div className="serial-cards-row">
+              {/* Serial Port Configuration Card */}
+              <div className="card">
+                <h2>Serial Port Configuration</h2>
+                <div className="card-content">
+                  <button onClick={fetchPorts}>Refresh Ports</button>
+                  <div className="input-group">
+                    <label htmlFor="port-select">Port:</label>
+                    <select
+                      id="port-select"
+                      value={selectedPort}
+                      onChange={(e) => setSelectedPort(e.target.value)}
+                    >
+                      {ports.map(port => (
+                        <option key={port.path} value={port.path}>
+                          {port.path} {port.manufacturer ? `(${port.manufacturer})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="input-group">
+                    <label htmlFor="baud-rate-select">Baud Rate:</label>
+                    <select
+                      id="baud-rate-select"
+                      value={baudRate}
+                      onChange={(e) => setBaudRate(parseInt(e.target.value))}
+                    >
+                      {BAUD_RATES.map((rate) => (
+                        <option key={rate} value={rate}>
+                          {rate}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div className="input-group">
-                  <label htmlFor="data-bits-select">Data Bits:</label>
-                  <select
-                    id="data-bits-select"
-                    value={dataBits}
-                    onChange={(e) => setDataBits(parseInt(e.target.value))}
-                  >
-                    {DATA_BITS.map((bits) => (
-                      <option key={bits} value={bits}>
-                        {bits}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  <div className="serial-settings-row">
+                    <div className="input-group">
+                      <label htmlFor="data-bits-select">Data Bits:</label>
+                      <select
+                        id="data-bits-select"
+                        value={dataBits}
+                        onChange={(e) => setDataBits(parseInt(e.target.value))}
+                      >
+                        {DATA_BITS.map((bits) => (
+                          <option key={bits} value={bits}>
+                            {bits}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                <div className="input-group">
-                  <label htmlFor="parity-select">Parity:</label>
-                  <select
-                    id="parity-select"
-                    value={parity}
-                    onChange={(e) => setParity(e.target.value)}
-                  >
-                    {PARITY_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option.charAt(0).toUpperCase() + option.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    <div className="input-group">
+                      <label htmlFor="parity-select">Parity:</label>
+                      <select
+                        id="parity-select"
+                        value={parity}
+                        onChange={(e) => setParity(e.target.value)}
+                      >
+                        {PARITY_OPTIONS.map((option) => (
+                          <option key={option} value={option}>
+                            {option.charAt(0).toUpperCase() + option.slice(1)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                <div className="input-group">
-                  <label htmlFor="stop-bits-select">Stop Bits:</label>
-                  <select
-                    id="stop-bits-select"
-                    value={stopBits}
-                    onChange={(e) => setStopBits(parseInt(e.target.value))}
-                  >
-                    {STOP_BITS.map((bits) => (
-                      <option key={bits} value={bits}>
-                        {bits}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    <div className="input-group">
+                      <label htmlFor="stop-bits-select">Stop Bits:</label>
+                      <select
+                        id="stop-bits-select"
+                        value={stopBits}
+                        onChange={(e) => setStopBits(parseInt(e.target.value))}
+                      >
+                        {STOP_BITS.map((bits) => (
+                          <option key={bits} value={bits}>
+                            {bits}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
 
-                <div className="button-group">
-                  <button onClick={handleOpenPort}>Open Port</button>
-                  <button onClick={handleClosePort}>Close Port</button>
+                  <div className="button-group">
+                    <button onClick={handleOpenPort}>Open Port</button>
+                    <button onClick={handleClosePort}>Close Port</button>
+                  </div>
+                  <p className="status-text">Status: {portStatus}</p>
                 </div>
-                <p className="status-text">Status: {portStatus}</p>
               </div>
-            </div>
 
-            {/* Send Data Card */}
-            <div className="card">
-              <h2>Send Data</h2>
-              <div className="card-content">
-                <div className="input-group">
-                  <label htmlFor="send-encoding-select">Send Encoding:</label>
-                  <select
-                    id="send-encoding-select"
-                    value={encoding}
-                    onChange={(e) => setEncoding(e.target.value)}
-                  >
-                    {ENCODING_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option.toUpperCase()}
-                      </option>
-                    ))}
-                  </select>
+              {/* Send Data Card */}
+              <div className="card">
+                <h2>Send Data</h2>
+                <div className="card-content">
+                  <div className="input-group">
+                    <label htmlFor="send-encoding-select">Send Encoding:</label>
+                    <select
+                      id="send-encoding-select"
+                      value={encoding}
+                      onChange={(e) => setEncoding(e.target.value)}
+                    >
+                      {ENCODING_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option.toUpperCase()}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <textarea
+                    value={dataToSend}
+                    onChange={(e) => setDataToSend(e.target.value)}
+                    placeholder="Enter data to send to FTDI chip..."
+                    rows="8"
+                  ></textarea>
+                  <button onClick={handleWriteData}>Send Data</button>
                 </div>
-                <textarea
-                  value={dataToSend}
-                  onChange={(e) => setDataToSend(e.target.value)}
-                  placeholder="Enter data to send to FTDI chip..."
-                  rows="5"
-                ></textarea>
-                <button onClick={handleWriteData}>Send Data</button>
-              </div>
-            </div>
-
-            {/* Received Data Card */}
-            <div className="card">
-              <h2>Received Data</h2>
-              <div className="card-content">
-                <div className="input-group">
-                  <label htmlFor="received-encoding-select">Display Encoding:</label>
-                  <select
-                    id="received-encoding-select"
-                    value={receivedDataEncoding}
-                    onChange={(e) => setReceivedDataEncoding(e.target.value)}
-                  >
-                    {ENCODING_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option.toUpperCase()}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <textarea
-                  ref={receivedDataRef}
-                  readOnly
-                  value={convertReceivedData(receivedData)}
-                  placeholder="Data received from FTDI chip..."
-                  rows="10"
-                ></textarea>
-                <button onClick={() => setReceivedData('')}>Clear Received Data</button>
               </div>
             </div>
           </div>
