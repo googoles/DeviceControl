@@ -49,7 +49,7 @@ A modern desktop application built with **Electron** and **React** for controlli
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/device-control-electron-app.git
+   git clone https://github.com/googoles/DeviceControl.git
    cd device-control-electron-app-new
    ```
 
@@ -246,15 +246,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### Getting Help
 
-- Check the [Issues](https://github.com/yourusername/device-control-electron-app/issues) page
+- Check the [Issues](https://github.com/googoles/DeviceControl/issues) page
 - Create a new issue with detailed error information
 - Include system information and steps to reproduce
 
 ## 📞 Support
 
-- **Email**: your.email@example.com
-- **GitHub Issues**: [Project Issues](https://github.com/yourusername/device-control-electron-app/issues)
-- **Documentation**: [Wiki](https://github.com/yourusername/device-control-electron-app/wiki)
+- **Email**: googoles1@gmail.com
+- **GitHub Issues**: [Project Issues](https://github.com/googoles/DeviceControl/issues)
+- **Documentation**: [Wiki](https://github.com/googoles/DeviceControl/wiki)
 
 ## 🏆 Acknowledgments
 
