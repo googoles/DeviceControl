@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Device Control Application with Serial Port Communication",
   "main": "main.js",
-  "author": "Your Name <your.email@example.com>",
+  "author": "Your Name <googoles1@gmail.com>",
   "license": "MIT",
-  "homepage": ".",
+  "homepage": "https://github.com/googoles/DeviceControl",
   "scripts": {
     "electron": "electron .",
     "dev": "concurrently --kill-others \"cd device-control-app && npm run dev\" \"npm run electron\" --names \"Vite,Electron\" --prefix-colors \"yellow,cyan\" -d 5000",
