@@ -2,6 +2,11 @@
 
 A modern desktop application built with **Electron** and **React** for controlling FPGA devices via serial communication. Features include real-time serial port communication, 24-channel DAC control, and an advanced serial monitor with filtering and export capabilities.
 
+## 📸 Screenshots
+
+![FPGA Device Control App](resources/screenshot_1.png)
+*Main interface showing serial communication and DAC control tabs*
+
 ## 🚀 Features
 
 ### Serial Communication
