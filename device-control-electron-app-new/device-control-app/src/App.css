@@ -1,3 +1,4 @@
+/* === 기존 기본 스타일 유지 === */
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -37,27 +38,28 @@
   color: #888;
 }
 
-/* === APP CONTAINER === */
+/* === APP CONTAINER - 고정 레이아웃 === */
 .app-container {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 20px;
-  padding: 20px;
   height: 100vh;
   overflow: hidden;
-  padding-bottom: 260px;
-  max-height: 100vh;
+  padding: 10px;
+  gap: 10px;
   box-sizing: border-box;
+  /* 시리얼 모니터를 위한 하단 여백 */
+  padding-bottom: 250px;
 }
 
 /* === TAB NAVIGATION === */
 .tab-navigation {
   display: flex;
   gap: 5px;
-  margin-bottom: 20px;
   border-bottom: 2px solid #3a3a3a;
-  padding-bottom: 10px;
+  padding-bottom: 8px;
+  flex-shrink: 0;
+  height: 50px;
+  align-items: flex-end;
 }
 
 .tab-button {
@@ -65,11 +67,12 @@
   color: #ddd;
   border: none;
   border-radius: 8px 8px 0 0;
-  padding: 12px 24px;
+  padding: 10px 20px;
   cursor: pointer;
-  font-size: 1em;
+  font-size: 0.95em;
   transition: all 0.3s ease;
   border-bottom: 3px solid transparent;
+  height: 40px;
 }
 
 .tab-button:hover {
@@ -86,9 +89,10 @@
 /* === TAB CONTENT === */
 .tab-content {
   flex: 1;
-  width: 100%;
-  overflow-y: auto;
-  padding-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
 }
 
 /* === SERIAL COMMUNICATION STYLES === */
@@ -99,6 +103,7 @@
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+  padding: 20px;
 }
 
 .serial-cards-row {
@@ -205,44 +210,66 @@ textarea[readOnly] {
   min-height: 100px;
 }
 
-/* === FIXED LAYOUT STYLES === */
+/* === DAC CONTROL - 완전 고정 레이아웃 === */
 .dac-control-container.fixed-layout {
-  width: 100%;
-  max-width: none;
-  height: calc(100vh - 160px);
   display: flex;
-  flex-direction: column;
+  flex-direction: column; /* 세로 배치로 고정 */
+  height: 100%;
   gap: 15px;
-  padding: 0 20px;
   overflow: hidden;
+  background-color: transparent;
+  /* 고정 크기로 변경되지 않도록 설정 */
+  min-width: 1200px;
+  min-height: 600px;
 }
 
-/* === TOP CONFIGURATION SECTION === */
+/* === 1. TOP SECTION - DAC Configuration (고정) === */
 .dac-config-section {
-  height: 140px;
+  /* 완전 고정된 상단 영역 */
+  height: 200px;
+  width: 100%;
   flex-shrink: 0;
+  background-color: #2a2a2a;
+  border-radius: 10px;
+  border: 2px solid #444;
+  padding: 15px;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  z-index: 10;
+  position: relative;
+  /* 최소/최대 크기 고정 */
+  min-height: 200px;
+  max-height: 200px;
 }
 
 .dac-config-section .card.compact-config {
   height: 100%;
-  padding: 15px 20px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
+  gap: 10px;
 }
 
 .dac-config-section .card.compact-config h2 {
-  margin: 0 0 15px 0;
+  margin: 0 0 10px 0;
   font-size: 1.2em;
+  color: #61dafb;
+  border-bottom: 1px solid #555;
+  padding-bottom: 8px;
 }
 
-.dac-config-section .config-content {
+.config-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 10px;
 }
 
-.dac-config-section .config-row {
+.config-row {
   display: grid;
   grid-template-columns: 1fr 2fr;
   gap: 20px;
@@ -252,7 +279,7 @@ textarea[readOnly] {
 .config-item {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
 }
 
 .config-item label {
@@ -269,35 +296,36 @@ textarea[readOnly] {
 
 .compact-input {
   flex: 1;
-  padding: 8px 10px;
+  padding: 6px 8px;
   font-size: 0.9em;
   border: 1px solid #555;
-  border-radius: 6px;
-  background-color: #333;
+  border-radius: 4px;
+  background-color: #444;
   color: #eee;
   min-width: 0;
 }
 
 .compact-select {
   width: 100%;
-  padding: 8px 10px;
+  padding: 6px 8px;
   font-size: 0.9em;
   border: 1px solid #555;
-  border-radius: 6px;
-  background-color: #333;
+  border-radius: 4px;
+  background-color: #444;
   color: #eee;
 }
 
-.dac-config-section .global-controls {
+.global-controls {
   display: flex;
   gap: 8px;
+  margin-top: 5px;
 }
 
 .compact-btn {
-  padding: 8px 12px;
+  padding: 6px 12px;
   font-size: 0.85em;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
   font-weight: 500;
   transition: all 0.3s ease;
@@ -330,27 +358,39 @@ textarea[readOnly] {
   color: white;
 }
 
-/* === MAIN CONTENT AREA === */
+/* === 2. MAIN CONTENT AREA - 완전 고정 === */
 .dac-main-content {
   flex: 1;
   display: grid;
-  grid-template-columns: 250px 1fr;
-  gap: 20px;
+  grid-template-columns: 240px 1fr; /* 고정 비율 */
+  gap: 15px;
   overflow: hidden;
+  min-height: 0;
+  background-color: transparent;
+  position: relative;
+  z-index: 5;
+  /* 최소 크기 고정 */
+  min-height: 400px;
 }
 
-/* === LEFT SIDEBAR: GROUP TABS === */
+/* === 2-1. LEFT SIDEBAR - Channel Groups (고정) === */
 .dac-groups-sidebar {
+  background-color: #2a2a2a;
+  border-radius: 10px;
+  border: 2px solid #444;
+  padding: 15px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background-color: #2a2a2a;
-  border-radius: 12px;
-  padding: 15px;
-  border: 1px solid #444;
   height: fit-content;
   max-height: 100%;
   overflow-y: auto;
+  position: relative;
+  z-index: 6;
+  /* 고정 크기 */
+  width: 240px;
+  min-width: 240px;
+  max-width: 240px;
 }
 
 .dac-groups-sidebar h3 {
@@ -358,13 +398,13 @@ textarea[readOnly] {
   color: #61dafb;
   font-size: 1.1em;
   text-align: center;
-  border-bottom: 1px solid #444;
-  padding-bottom: 10px;
+  border-bottom: 1px solid #555;
+  padding-bottom: 8px;
 }
 
 .dac-sub-tabs.vertical {
   display: flex;
-  flex-direction: column;
+  flex-direction: column; /* 항상 세로 배치 */
   gap: 8px;
 }
 
@@ -440,25 +480,35 @@ textarea[readOnly] {
   font-weight: 600;
 }
 
-/* === RIGHT AREA: CHANNELS === */
+/* === 2-2. RIGHT AREA - Channels Area (고정) === */
 .dac-channels-area {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
   overflow: hidden;
+  min-height: 0;
+  background-color: transparent;
+  position: relative;
+  z-index: 6;
 }
 
-/* Group Control Header - Fixed */
+/* === Group Control Header (고정) === */
 .group-control-header-fixed {
   background-color: #2a2a2a;
-  border-radius: 10px;
-  border: 1px solid #444;
-  padding: 15px 20px;
-  display: flex;
+  border-radius: 8px;
+  border: 2px solid #444;
+  padding: 12px 16px;
+  display: flex; /* 항상 가로 배치 */
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
-  height: 60px;
+  height: 60px; /* 고정 높이 */
+  box-sizing: border-box;
+  position: relative;
+  z-index: 7;
+  /* 크기 고정 */
+  min-height: 60px;
+  max-height: 60px;
 }
 
 .group-title-info {
@@ -469,7 +519,7 @@ textarea[readOnly] {
 
 .group-title-info h2 {
   margin: 0;
-  font-size: 1.3em;
+  font-size: 1.2em;
   line-height: 1;
 }
 
@@ -480,7 +530,7 @@ textarea[readOnly] {
 
 .group-quick-controls {
   display: flex;
-  gap: 20px;
+  gap: 16px;
   align-items: center;
 }
 
@@ -496,7 +546,7 @@ textarea[readOnly] {
   font-size: 0.9em;
   border: 1px solid #555;
   border-radius: 4px;
-  background-color: #333;
+  background-color: #444;
   color: #eee;
   text-align: center;
 }
@@ -542,26 +592,32 @@ textarea[readOnly] {
   color: white;
 }
 
-/* Channels Grid - Fixed */
+/* === Channels Grid (고정) === */
 .channels-grid-fixed {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
+  grid-template-columns: repeat(3, 1fr); /* 항상 3열 고정 */
+  gap: 12px;
   overflow-y: auto;
   padding: 5px;
+  min-height: 0;
+  background-color: transparent;
 }
 
-/* Individual Channel Cards - Fixed */
+/* === Individual Channel Cards (고정) === */
 .dac-channel-card.fixed {
   background: linear-gradient(135deg, #2a2a2a 0%, #333 100%);
   border-radius: 10px;
   border: 1px solid #444;
   padding: 15px;
   transition: all 0.3s ease;
-  height: 200px;
+  height: 200px; /* 고정 높이 */
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  /* 크기 고정 */
+  min-height: 200px;
+  max-height: 200px;
 }
 
 .dac-channel-card.fixed:hover {
@@ -646,7 +702,7 @@ textarea[readOnly] {
   display: block;
 }
 
-/* Channel Controls - Fixed */
+/* Channel Controls */
 .channel-controls.fixed {
   flex: 1;
   display: flex;
@@ -717,7 +773,7 @@ textarea[readOnly] {
   font-size: 0.9em;
   border: 1px solid #555;
   border-radius: 4px;
-  background-color: #333;
+  background-color: #444;
   color: #eee;
   text-align: center;
   font-family: 'Courier New', monospace;
@@ -930,135 +986,66 @@ textarea[readOnly] {
   margin-top: 20px;
 }
 
-/* === RESPONSIVE DESIGN === */
+/* === 반응형 디자인 완전 제거/제한 === */
+/* 작은 화면에서도 최소 크기 유지 */
 @media (max-width: 1400px) {
+  /* 레이아웃 변경 없음 - 그대로 유지 */
   .channels-grid-fixed {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr); /* 여전히 3열 유지 */
+  }
+  
+  .dac-main-content {
+    grid-template-columns: 240px 1fr; /* 사이드바 크기 고정 유지 */
   }
 }
 
 @media (max-width: 1200px) {
-  .dac-main-content {
-    grid-template-columns: 1fr;
-    gap: 15px;
+  /* 최소한의 조정만 허용 */
+  .dac-control-container.fixed-layout {
+    min-width: 1000px; /* 최소 크기 유지 */
   }
   
-  .dac-groups-sidebar {
-    max-height: none;
-    height: auto;
+  /* 다른 레이아웃 변경 제거 */
+  .dac-main-content {
+    grid-template-columns: 240px 1fr; /* 그리드 구조 유지 */
   }
   
   .dac-groups-sidebar .dac-sub-tabs.vertical {
-    flex-direction: row;
-    gap: 8px;
-    overflow-x: auto;
-  }
-  
-  .dac-groups-sidebar .dac-sub-tab.vertical {
-    flex: 1;
-    min-width: 120px;
+    flex-direction: column; /* 세로 배치 강제 유지 */
   }
   
   .group-control-header-fixed {
-    flex-direction: column;
-    height: auto;
-    gap: 10px;
-    align-items: flex-start;
-  }
-  
-  .group-quick-controls {
-    width: 100%;
-    justify-content: space-between;
-  }
-  
-  .serial-cards-row {
-    grid-template-columns: 1fr;
-  }
-  
-  .serial-settings-row {
-    grid-template-columns: 1fr 1fr;
+    display: flex; /* 가로 배치 강제 유지 */
+    height: 60px; /* 고정 높이 유지 */
   }
 }
 
 @media (max-width: 768px) {
-  .dac-control-container.fixed-layout {
-    padding: 0 10px;
+  /* 모바일에서도 데스크톱 레이아웃 강제 유지 */
+  .app-container {
+    padding: 5px;
+    padding-bottom: 200px;
+    min-width: 1000px; /* 최소 너비 강제 */
   }
   
-  .dac-config-section .config-row {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-  
+  /* 다른 모든 변경 제거 */
   .channels-grid-fixed {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr); /* 3열 강제 유지 */
   }
   
   .dac-channel-card.fixed {
-    height: auto;
-  }
-  
-  .group-quick-controls {
-    flex-direction: column;
-    gap: 10px;
-    align-items: stretch;
-  }
-  
-  .group-action-buttons-fixed {
-    justify-content: space-between;
-  }
-  
-  .serial-cards-container {
-    max-width: 100%;
-    padding: 0 10px;
-  }
-  
-  .serial-settings-row {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .tab-button {
-    border-radius: 8px;
-    margin-bottom: 5px;
+    height: 200px; /* 고정 높이 유지 */
   }
   
   .serial-monitor {
-    height: 200px;
-  }
-  
-  .app-container {
-    padding-bottom: 220px;
-  }
-
-  .monitor-controls {
-    gap: 8px;
-  }
-
-  .monitor-control-group {
-    gap: 4px;
-    padding: 2px 4px;
-  }
-
-  .monitor-search {
-    width: 80px;
+    height: 180px;
   }
 }
 
 @media (max-width: 480px) {
-  .dac-groups-sidebar {
-    padding: 10px;
-  }
-  
-  .group-control-header-fixed {
-    padding: 10px 15px;
-  }
-  
-  .dac-channel-card.fixed {
-    padding: 12px;
-    height: auto;
-  }
-  
-  .serial-settings-row {
-    grid-template-columns: 1fr;
+  /* 초소형 화면에서도 레이아웃 유지 */
+  .app-container {
+    min-width: 1000px; /* 강제 최소 너비 */
+    overflow-x: auto; /* 가로 스크롤 허용 */
   }
 }

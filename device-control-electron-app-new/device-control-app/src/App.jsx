@@ -573,7 +573,7 @@ function App() {
 
         {activeTab === 'dac' && (
           <div className="dac-control-container fixed-layout">
-            {/* Top Configuration Section */}
+            {/* 1. Top Configuration Section - 명확히 분리된 독립 영역 */}
             <div className="dac-config-section">
               <div className="card compact-config">
                 <h2>DAC Configuration</h2>
@@ -623,9 +623,9 @@ function App() {
               </div>
             </div>
 
-            {/* Main Content Area */}
+            {/* 2. Main Content Area - 완전히 독립적인 영역 */}
             <div className="dac-main-content">
-              {/* Left: Group Tabs */}
+              {/* 2-1. Left: Group Tabs Sidebar */}
               <div className="dac-groups-sidebar">
                 <h3>Channel Groups</h3>
                 <div className="dac-sub-tabs vertical">
@@ -653,9 +653,9 @@ function App() {
                 </div>
               </div>
 
-              {/* Right: Active Group Channels */}
+              {/* 2-2. Right: Active Group Channels */}
               <div className="dac-channels-area">
-                {/* Group Control Header */}
+                {/* Group Control Header - 완전히 독립적 */}
                 <div className="group-control-header-fixed">
                   <div className="group-title-info">
                     <h2 style={{color: groupSettings[activeDacTab].color}}>
@@ -705,7 +705,7 @@ function App() {
                   </div>
                 </div>
 
-                {/* Channel Grid */}
+                {/* Channel Grid - 완전히 독립적 */}
                 <div className="channels-grid-fixed">
                   {getCurrentGroupChannels().map((channel) => (
                     <div key={channel.id} className="dac-channel-card fixed">
