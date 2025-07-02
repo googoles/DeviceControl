@@ -4,6 +4,7 @@ import './App.css';
 function App() {
   // Tab state
   const [activeTab, setActiveTab] = useState('serial');
+  const [activeDacTab, setActiveDacTab] = useState('groupA');
 
   // Serial Port states
   const [ports, setPorts] = useState([]);
@@ -35,11 +36,28 @@ function App() {
       value: 0,
       enabled: true,
       min: 0,
-      max: 4095 // 12-bit DAC default
+      max: 4095,
+      group: Math.floor(i / 6) + 1
     }))
   );
-  const [dacResolution, setDacResolution] = useState(12); // 12 or 16 bit
+  const [dacResolution, setDacResolution] = useState(12);
   const [allChannelsValue, setAllChannelsValue] = useState(0);
+
+  // 그룹별 설정
+  const [groupSettings] = useState({
+    groupA: { name: 'Group A', channels: [1, 2, 3, 4, 5, 6], color: '#ff6b6b' },
+    groupB: { name: 'Group B', channels: [7, 8, 9, 10, 11, 12], color: '#4ecdc4' },
+    groupC: { name: 'Group C', channels: [13, 14, 15, 16, 17, 18], color: '#45b7d1' },
+    groupD: { name: 'Group D', channels: [19, 20, 21, 22, 23, 24], color: '#96ceb4' }
+  });
+
+  // 그룹별 전체 값 설정 상태
+  const [groupValues, setGroupValues] = useState({
+    groupA: 0,
+    groupB: 0,
+    groupC: 0,
+    groupD: 0
+  });
 
   // Serial Monitor states
   const [serialMonitorLog, setSerialMonitorLog] = useState([]);
@@ -50,12 +68,57 @@ function App() {
   const [showRX, setShowRX] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [useRegex, setUseRegex] = useState(false);
-  const [displayFormat, setDisplayFormat] = useState('ascii'); // ascii, hex, binary
-  const [timestampFormat, setTimestampFormat] = useState('absolute'); // absolute, relative, milliseconds
+  const [displayFormat, setDisplayFormat] = useState('ascii');
+  const [timestampFormat, setTimestampFormat] = useState('absolute');
   const [autoScroll, setAutoScroll] = useState(true);
   const [maxLogLines, setMaxLogLines] = useState(1000);
   const [selectedEntries, setSelectedEntries] = useState(new Set());
   const [startTime] = useState(Date.now());
+
+  // 현재 활성 그룹의 채널들 가져오기
+  const getCurrentGroupChannels = () => {
+    const channelIds = groupSettings[activeDacTab].channels;
+    return dacChannels.filter(channel => channelIds.includes(channel.id));
+  };
+
+  // 현재 그룹의 모든 채널 값 설정
+  const setCurrentGroupChannels = () => {
+    const channelIds = groupSettings[activeDacTab].channels;
+    const value = groupValues[activeDacTab];
+    
+    setDacChannels(prev => prev.map(channel => 
+      channelIds.includes(channel.id) ? { ...channel, value: parseInt(value) } : channel
+    ));
+  };
+
+  // 현재 그룹의 모든 채널 활성화/비활성화
+  const toggleCurrentGroupChannels = (enabled) => {
+    const channelIds = groupSettings[activeDacTab].channels;
+    
+    setDacChannels(prev => prev.map(channel => 
+      channelIds.includes(channel.id) ? { ...channel, enabled } : channel
+    ));
+  };
+
+  // 현재 그룹의 모든 채널 전송
+  const sendCurrentGroupChannels = async () => {
+    const currentChannels = getCurrentGroupChannels();
+    
+    for (const channel of currentChannels) {
+      if (channel.enabled) {
+        await sendDacCommand(channel.id, channel.value);
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+    }
+  };
+
+  // 그룹 값 업데이트
+  const updateGroupValue = (groupKey, value) => {
+    setGroupValues(prev => ({
+      ...prev,
+      [groupKey]: value
+    }));
+  };
 
   const fetchPorts = async () => {
     if (window.electron) {
@@ -77,13 +140,12 @@ function App() {
     const logEntry = {
       timestamp: now,
       data,
-      type, // 'sent' or 'received'
+      type,
       id: now + Math.random()
     };
     
     setSerialMonitorLog(prev => {
       const newLog = [...prev, logEntry];
-      // Limit log lines
       if (newLog.length > maxLogLines) {
         return newLog.slice(-maxLogLines);
       }
@@ -100,7 +162,7 @@ function App() {
         return `+${(diff / 1000).toFixed(3)}s`;
       case 'milliseconds':
         return `${timestamp}`;
-      default: // absolute
+      default:
         return date.toLocaleTimeString();
     }
   };
@@ -112,7 +174,7 @@ function App() {
         return data.split('').map(char => char.charCodeAt(0).toString(16).padStart(2, '0')).join(' ');
       case 'binary':
         return data.split('').map(char => char.charCodeAt(0).toString(2).padStart(8, '0')).join(' ');
-      default: // ascii
+      default:
         return data.replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\t/g, '\\t');
     }
   };
@@ -121,21 +183,18 @@ function App() {
   const getFilteredEntries = () => {
     let filtered = serialMonitorLog;
 
-    // Filter by TX/RX
     if (!showTX || !showRX) {
       filtered = filtered.filter(entry => 
         (showTX && entry.type === 'sent') || (showRX && entry.type === 'received')
       );
     }
 
-    // Search filter
     if (searchTerm) {
       if (useRegex) {
         try {
           const regex = new RegExp(searchTerm, 'gi');
           filtered = filtered.filter(entry => regex.test(entry.data));
         } catch (e) {
-          // Invalid regex, fall back to simple search
           filtered = filtered.filter(entry => 
             entry.data.toLowerCase().includes(searchTerm.toLowerCase())
           );
@@ -159,7 +218,6 @@ function App() {
         const regex = new RegExp(`(${term})`, 'gi');
         return text.replace(regex, '<mark>$1</mark>');
       } catch (e) {
-        // Invalid regex, fall back to simple highlighting
         const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const regex = new RegExp(`(${escapedTerm})`, 'gi');
         return text.replace(regex, '<mark>$1</mark>');
@@ -355,7 +413,6 @@ function App() {
       return;
     }
 
-    // DAC command format: "DAC,<channel>,<value>\n"
     const command = `DAC,${channelId},${value}\n`;
     const result = await window.electron.writeToSerialPort(command, 'ascii');
     addToSerialMonitor(command.trim(), 'sent');
@@ -366,7 +423,6 @@ function App() {
     for (const channel of dacChannels) {
       if (channel.enabled) {
         await sendDacCommand(channel.id, channel.value);
-        // Small delay between commands
         await new Promise(resolve => setTimeout(resolve, 10));
       }
     }
@@ -374,8 +430,6 @@ function App() {
 
   return (
     <div className="app-container">
-      
-
       {/* Tab Navigation */}
       <div className="tab-navigation">
         <button 
@@ -518,103 +572,215 @@ function App() {
         )}
 
         {activeTab === 'dac' && (
-          <div className="dac-control-container">
-            {/* DAC Configuration */}
-            <div className="card">
-              <h2>DAC Configuration</h2>
-              <div className="card-content">
-                <div className="input-group">
-                  <label htmlFor="dac-resolution">DAC Resolution:</label>
-                  <select
-                    id="dac-resolution"
-                    value={dacResolution}
-                    onChange={(e) => setDacResolution(parseInt(e.target.value))}
-                  >
-                    <option value={12}>12-bit (0-4095)</option>
-                    <option value={16}>16-bit (0-65535)</option>
-                  </select>
-                </div>
-                <div className="input-group">
-                  <label htmlFor="all-channels-value">Set All Channels:</label>
-                  <div className="all-channels-control">
-                    <input
-                      type="number"
-                      id="all-channels-value"
-                      value={allChannelsValue}
-                      onChange={(e) => setAllChannelsValue(e.target.value)}
-                      min="0"
-                      max={dacResolution === 12 ? 4095 : 65535}
-                    />
-                    <button onClick={setAllChannels}>Apply to All</button>
+          <div className="dac-control-container fixed-layout">
+            {/* Top Configuration Section */}
+            <div className="dac-config-section">
+              <div className="card compact-config">
+                <h2>DAC Configuration</h2>
+                <div className="config-content">
+                  <div className="config-row">
+                    <div className="config-item">
+                      <label>Resolution:</label>
+                      <select
+                        value={dacResolution}
+                        onChange={(e) => setDacResolution(parseInt(e.target.value))}
+                        className="compact-select"
+                      >
+                        <option value={12}>12-bit (0-4095)</option>
+                        <option value={16}>16-bit (0-65535)</option>
+                      </select>
+                    </div>
+                    <div className="config-item">
+                      <label>All Channels:</label>
+                      <div className="inline-control">
+                        <input
+                          type="number"
+                          value={allChannelsValue}
+                          onChange={(e) => setAllChannelsValue(e.target.value)}
+                          min="0"
+                          max={dacResolution === 12 ? 4095 : 65535}
+                          className="compact-input"
+                        />
+                        <button onClick={setAllChannels} className="compact-btn primary">
+                          Apply All
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="button-group">
-                  <button onClick={sendAllDacChannels}>Send All Channels</button>
-                </div>
-                <div className="button-group">
-                  <button onClick={enableAllChannels}>Enable All</button>
-                  <button onClick={disableAllChannels}>Disable All</button>
+                  
+                  <div className="global-controls">
+                    <button onClick={sendAllDacChannels} className="compact-btn send">
+                      📤 Send All
+                    </button>
+                    <button onClick={enableAllChannels} className="compact-btn enable">
+                      ✅ Enable All
+                    </button>
+                    <button onClick={disableAllChannels} className="compact-btn disable">
+                      ❌ Disable All
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* DAC Channels Grid */}
-            <div className="dac-channels-grid">
-              {dacChannels.map((channel) => (
-                <div key={channel.id} className="dac-channel-card">
-                  <div className="channel-header">
-                    <h3>Channel {channel.id}</h3>
-                    <label className="channel-enable">
-                      <input
-                        type="checkbox"
-                        checked={channel.enabled}
-                        onChange={() => toggleDacChannel(channel.id)}
-                      />
-                      Enable
-                    </label>
+            {/* Main Content Area */}
+            <div className="dac-main-content">
+              {/* Left: Group Tabs */}
+              <div className="dac-groups-sidebar">
+                <h3>Channel Groups</h3>
+                <div className="dac-sub-tabs vertical">
+                  {Object.entries(groupSettings).map(([key, group]) => (
+                    <button
+                      key={key}
+                      className={`dac-sub-tab vertical ${activeDacTab === key ? 'active' : ''}`}
+                      onClick={() => setActiveDacTab(key)}
+                      style={{
+                        '--tab-color': group.color,
+                        '--tab-color-alpha': group.color + '20'
+                      }}
+                    >
+                      <div className="tab-main">
+                        <span className="tab-name">{group.name}</span>
+                        <span className="tab-channels">Ch {group.channels[0]}-{group.channels[5]}</span>
+                      </div>
+                      <div className="tab-status">
+                        <span className="status-badge">
+                          {getCurrentGroupChannels().filter(ch => ch.enabled).length}/6
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right: Active Group Channels */}
+              <div className="dac-channels-area">
+                {/* Group Control Header */}
+                <div className="group-control-header-fixed">
+                  <div className="group-title-info">
+                    <h2 style={{color: groupSettings[activeDacTab].color}}>
+                      {groupSettings[activeDacTab].name} Control
+                    </h2>
+                    <span className="enabled-count">
+                      {getCurrentGroupChannels().filter(ch => ch.enabled).length} / 6 channels enabled
+                    </span>
                   </div>
-                  <div className="channel-controls">
-                    <input
-                      type="range"
-                      min={channel.min}
-                      max={channel.max}
-                      value={channel.value}
-                      onChange={(e) => updateDacChannel(channel.id, e.target.value)}
-                      disabled={!channel.enabled}
-                      className="dac-slider"
-                    />
-                    <div className="channel-value-controls">
+                  
+                  <div className="group-quick-controls">
+                    <div className="group-value-section">
                       <input
                         type="number"
-                        value={channel.value}
-                        onChange={(e) => updateDacChannel(channel.id, e.target.value)}
-                        min={channel.min}
-                        max={channel.max}
-                        disabled={!channel.enabled}
-                        className="channel-value-input"
+                        value={groupValues[activeDacTab]}
+                        onChange={(e) => updateGroupValue(activeDacTab, e.target.value)}
+                        min="0"
+                        max={dacResolution === 12 ? 4095 : 65535}
+                        className="group-value-input"
+                        placeholder="Group value"
                       />
-                      <button
-                        onClick={() => sendDacCommand(channel.id, channel.value)}
-                        disabled={!channel.enabled}
-                        className="send-channel-button"
+                      <button onClick={setCurrentGroupChannels} className="group-action-btn primary">
+                        Set Group
+                      </button>
+                    </div>
+                    
+                    <div className="group-action-buttons-fixed">
+                      <button 
+                        onClick={sendCurrentGroupChannels}
+                        className="group-action-btn send"
                       >
-                        Send
+                        📤 Send
+                      </button>
+                      <button 
+                        onClick={() => toggleCurrentGroupChannels(true)}
+                        className="group-action-btn enable"
+                      >
+                        ✅ Enable
+                      </button>
+                      <button 
+                        onClick={() => toggleCurrentGroupChannels(false)}
+                        className="group-action-btn disable"
+                      >
+                        ❌ Disable
                       </button>
                     </div>
                   </div>
                 </div>
-              ))}
+
+                {/* Channel Grid */}
+                <div className="channels-grid-fixed">
+                  {getCurrentGroupChannels().map((channel) => (
+                    <div key={channel.id} className="dac-channel-card fixed">
+                      <div className="channel-header fixed">
+                        <div className="channel-info">
+                          <h3>Channel {channel.id}</h3>
+                          <span className="channel-value-display" style={{color: groupSettings[activeDacTab].color}}>
+                            {channel.value}
+                          </span>
+                        </div>
+                        <label className="channel-enable modern">
+                          <input
+                            type="checkbox"
+                            checked={channel.enabled}
+                            onChange={() => toggleDacChannel(channel.id)}
+                          />
+                          <span className="checkmark"></span>
+                        </label>
+                      </div>
+                      
+                      <div className="channel-controls fixed">
+                        <div className="slider-container">
+                          <input
+                            type="range"
+                            min={channel.min}
+                            max={channel.max}
+                            value={channel.value}
+                            onChange={(e) => updateDacChannel(channel.id, e.target.value)}
+                            disabled={!channel.enabled}
+                            className="dac-slider modern"
+                            style={{'--slider-color': groupSettings[activeDacTab].color}}
+                          />
+                          <div className="slider-labels">
+                            <span>0</span>
+                            <span>{channel.max}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="channel-actions">
+                          <input
+                            type="number"
+                            value={channel.value}
+                            onChange={(e) => updateDacChannel(channel.id, e.target.value)}
+                            min={channel.min}
+                            max={channel.max}
+                            disabled={!channel.enabled}
+                            className="channel-value-input modern"
+                          />
+                          <button
+                            onClick={() => sendDacCommand(channel.id, channel.value)}
+                            disabled={!channel.enabled}
+                            className="send-channel-button modern"
+                            style={{
+                              backgroundColor: channel.enabled ? groupSettings[activeDacTab].color : '',
+                              borderColor: channel.enabled ? groupSettings[activeDacTab].color : ''
+                            }}
+                          >
+                            Send
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Enhanced Serial Monitor at bottom */}
+      {/* Enhanced Serial Monitor */}
       <div className="serial-monitor">
         <div className="serial-monitor-header">
           <h3>Serial Monitor</h3>
           <div className="monitor-controls">
-            {/* Filter Controls */}
             <div className="monitor-control-group">
               <label className="monitor-checkbox">
                 <input
@@ -634,7 +800,6 @@ function App() {
               </label>
             </div>
 
-            {/* Search Controls */}
             <div className="monitor-control-group">
               <input
                 type="text"
@@ -653,7 +818,6 @@ function App() {
               </label>
             </div>
 
-            {/* Display Options */}
             <div className="monitor-control-group">
               <select
                 value={displayFormat}
@@ -675,7 +839,6 @@ function App() {
               </select>
             </div>
 
-            {/* Action Controls */}
             <div className="monitor-control-group">
               <label className="monitor-checkbox">
                 <input
@@ -697,7 +860,6 @@ function App() {
               />
             </div>
 
-            {/* File Operations */}
             <div className="monitor-control-group">
               <button onClick={() => saveLogToFile('txt')} className="monitor-btn">Save TXT</button>
               <button onClick={() => saveLogToFile('csv')} className="monitor-btn">Save CSV</button>
